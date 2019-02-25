@@ -10,6 +10,7 @@ const getRange = int => [...Array(int).keys(), int];
 
 const plateCombinationCache = {};
 
+// figure out nodes
 const getPlateCombination = ({plates, plateMap, targetWeight}) => {
     if (plates.length === 0){
         return [];
@@ -54,10 +55,17 @@ const getPlateCombination = ({plates, plateMap, targetWeight}) => {
     return output;
 }
 
-const getNumberOfPlateChanges = ({plates, combination1, combination2}) => {
+// scoring
+const getNumberOfPlateChanges = ({plates, combinationA, combinationB}) => {
+    const combinationAByPlateId = arrayToKeyMap(combinationA, 'id');
+    const combinationBByPlateId = arrayToKeyMap(combinationB, 'id');
 
+    return plates.map(plate => {
+        const platesA = combinationAByPlateId[plate.id] ? combinationAByPlateId[plate.id].numPlates : 0;
+        const platesB = combinationBByPlateId[plate.id] ? combinationBByPlateId[plate.id].numPlates : 0;
 
-
+        return Math.abs(platesA - platesB);
+    }).reduce((acc, actionsPerPlate) => acc + actionsPerPlate, 0)
 }
 
 const getPlateCombinations = (plates, targetWeight) => {
@@ -67,14 +75,54 @@ const getPlateCombinations = (plates, targetWeight) => {
     return getPlateCombination({plates: sortedPlates, plateMap, targetWeight});
 }
 
+const buildPlateGraph = (plates, plateCombinations) => {
+    const endNode = {id: 'end'};
+
+    const reversedPlateCombinations = [...plateCombinations].reverse();
+
+    let lastChildren = [endNode];
+    for( var i = 0; i < reversedPlateCombinations.length; i++){
+        const currentChildren = reversedPlateCombinations[i];
+        const scoredNodes = currentChildren.map(currentPlateCombination => ({
+            plateCombination: currentPlateCombination,
+            children: lastChildren.map(targetNode => ({
+                ...targetNode,
+                score: targetNode.id === 'end'
+                    ? 0
+                    : getNumberOfPlateChanges({
+                        plates,
+                        combinationA: currentPlateCombination,
+                        combinationB: targetNode.plateCombination
+                    })
+            }))
+        }));
+
+        lastChildren = scoredNodes;
+    }
+
+    const startNode = {
+        id: 'start',
+        children: lastChildren
+    };
+
+    return startNode;
+}
+
 const getOptimalWeights = ({plates, targetWeights, barWeight = 45}) => {
     const targetPlateWeights = targetWeights.map(weight => weight - barWeight);
 
+    // get plate nodes
     const plateCombinationsPerTarget = targetPlateWeights.map(targetWeight => ({
         targetWeight,
         displayWeight: targetWeight + barWeight,
         combinations: getPlateCombinations(plates, targetWeight)
     }));
+
+    // build plate graph
+    const startNode = buildPlateGraph(plates,plateCombinationsPerTarget );
+    // dikjstras
+
+
 
     return plateCombinationsPerTarget;
 }
