@@ -2,9 +2,12 @@
 Getting the optimal plate sets
 
 Problem
+
 Sometimes while weight lifting, we have to change weights between sets. 
 
-Given n sets with target weights and x plates, what is the optimal way to load the plates?
+Given n sets with target weights and x plates, what is the optimal way to load the plates to reduce actions? 
+
+Actions compose of either taking off a plate or adding on a plate. 
 
 For example:
 The bar weighs 45lb.
